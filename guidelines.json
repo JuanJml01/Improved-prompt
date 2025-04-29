@@ -1,0 +1,20 @@
+{
+  "introduction": "Prompt engineering involves crafting effective inputs for AI models like Gemini to achieve desired outputs. This guide outlines key techniques.",
+  "techniques": [
+    {
+      "name": "persona_pattern",
+      "summarized": "Instruct the AI to adopt a specific persona (e.g., 'Act as a senior software engineer').",
+      "complete": "Define a role for the AI. This helps set the context, tone, and expertise level for the response. Example: 'You are a helpful assistant specializing in explaining complex scientific concepts to a lay audience.'"
+    },
+    {
+      "name": "few_shot_examples",
+      "summarized": "Provide a few examples of the desired input/output format.",
+      "complete": "Include 2-5 examples demonstrating the task you want the AI to perform. This is particularly effective for tasks involving specific formatting or style. Example: Input: 'Translate to French: Hello' Output: 'Bonjour'. Input: 'Translate to French: Goodbye' Output: 'Au revoir'."
+    },
+    {
+      "name": "clear_instructions",
+      "summarized": "State the task clearly and specifically.",
+      "complete": "Avoid ambiguity. Clearly define the objective, the expected format of the output, and any constraints. Break down complex tasks into smaller, manageable steps if necessary."
+    }
+  ]
+}
