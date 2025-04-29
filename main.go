@@ -5,11 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"log" // Using log for simple error reporting
+
 	// It's conventional to alias internal packages based on their directory name.
 	// These imports will be uncommented as the packages are implemented.
-	// config "tokinfo/internal/config"
+	config "tokinfo/internal/config"
 	// gemini "tokinfo/internal/gemini"
-	// prompt "tokinfo/internal/prompt"
+	prompt "tokinfo/internal/prompt"
 )
 
 func main() {
@@ -26,18 +27,18 @@ func main() {
 	fmt.Println("Starting Tokinfo: Prompt Enhancement Tool...") // Indicate start
 
 	// --- Load Guidelines ---
-	// guidelines, err := config.LoadGuidelines("guidelines.json")
-	// if err != nil {
-	// 	log.Fatalf("Error loading guidelines: %v", err)
-	// }
-	// fmt.Println("Guidelines loaded.") // Progress message
+	guidelines, err := config.LoadGuidelines("guidelines.json")
+	if err != nil {
+		log.Fatalf("Error loading guidelines: %v", err)
+	}
+	fmt.Println("Guidelines loaded.") // Progress message
 
 	// --- Read User Prompt ---
-	// userPrompt, err := prompt.ReadInput(*promptInput)
-	// if err != nil {
-	// 	log.Fatalf("Error reading prompt input: %v", err)
-	// }
-	// fmt.Println("User prompt read successfully.") // Progress message
+	userPrompt, err := prompt.ReadInput(*promptInput)
+	if err != nil {
+		log.Fatalf("Error reading prompt input: %v", err)
+	}
+	fmt.Println("User prompt read successfully.") // Progress message
 
 	// --- Initialize Gemini Client ---
 	// apiKey := os.Getenv("GEMINI_API_KEY") // Example: Get API key from environment variable
