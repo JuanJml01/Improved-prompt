@@ -96,3 +96,20 @@ func (c *Client) RefinePrompt(ctx context.Context, intro string, completeTechniq
 	refined := fmt.Sprintf("Enhanced version of '%s' using technique description: '%s'. User answers: %v", userPrompt, completeTechniqueDesc, answers)
 	return refined, nil // Placeholder return
 }
+
+// GenerateResponse calls the Gemini API's GenerateContent method to get a response.
+// It takes the context, model name, prompt, and configuration, and returns the generated text or an error.
+func (c *Client) GenerateResponse(ctx context.Context, modelName string, prompt string, config *genai.GenerateContentConfig) (string, error) {
+	// Call the embedded genai.Client's GenerateContent method
+	result, err := c.Client.Models.GenerateContent(ctx, modelName, genai.Text(prompt), config)
+	if err != nil {
+		// Handle the error from the API call
+		return "", fmt.Errorf("failed to generate content: %w", err)
+	}
+
+	// Extract the text from the result
+	generatedText := result.Text()
+
+	// Return the extracted text and nil error
+	return generatedText, nil
+}
