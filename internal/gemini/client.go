@@ -4,15 +4,16 @@ package gemini
 import (
 	"context" // Gemini client likely requires context
 	"fmt"     // For error formatting
+
 	// Official Gemini Go client package import path needs to be added here.
 	// Example: "google.golang.org/api/option"
 	// Example: "github.com/google/generative-ai-go/genai"
+	"google.golang.org/genai"
 )
 
 // Client wraps the official Gemini client and provides specific methods for tokinfo.
 type Client struct {
-	// internalClient *genai.Client // Example: Store the official client instance
-	apiKey string // Store API key if needed for methods
+	*genai.Client // Embed the official client
 }
 
 // AnalysisResult holds the structured data returned from the Stage 1 analysis call.
@@ -24,23 +25,29 @@ type AnalysisResult struct {
 
 // NewClient initializes and returns a new Gemini client wrapper.
 // It requires the API key for authentication.
-func NewClient(apiKey string) (*Client, error) {
-	// Implementation details:
-	// 1. Use the official genai package to create a new client instance.
-	//    (e.g., genai.NewClient(context.Background(), option.WithAPIKey(apiKey)))
-	// 2. Handle potential initialization errors.
-	// 3. Return a new instance of our wrapper Client struct.
+func NewClient(ctx context.Context, apiKey string) (*Client, error) {
+	// Use the official genai package to create a new client instance.
+	// Handle potential initialization errors.
+	// Return a new instance of our wrapper Client struct.
 
 	if apiKey == "" {
 		return nil, fmt.Errorf("API key cannot be empty")
 	}
-	// Placeholder implementation
-	// officialClient, err := genai.NewClient(context.Background(), option.WithAPIKey(apiKey))
-	// if err != nil {
-	//     return nil, fmt.Errorf("failed to create genai client: %w", err)
-	// }
 
-	return &Client{apiKey: apiKey /*, internalClient: officialClient*/}, nil // Placeholder return
+	// Create ClientConfig
+	cfg := &genai.ClientConfig{
+		APIKey: apiKey,
+		// Add other config options if needed, e.g., Backend, Project, Location
+	}
+
+	// Create the official client
+	officialClient, err := genai.NewClient(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create genai client: %w", err)
+	}
+
+	// Return our wrapper client embedding the official client
+	return &Client{Client: officialClient}, nil
 }
 
 // Close releases any resources held by the client.
