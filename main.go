@@ -2,14 +2,16 @@
 package main
 
 import (
+	"context" // Add context import
 	"flag"
 	"fmt"
 	"log" // Using log for simple error reporting
+	"os"  // Add os import
 
 	// It's conventional to alias internal packages based on their directory name.
 	// These imports will be uncommented as the packages are implemented.
 	config "tokinfo/internal/config"
-	// gemini "tokinfo/internal/gemini"
+	gemini "tokinfo/internal/gemini"
 	prompt "tokinfo/internal/prompt"
 )
 
@@ -41,16 +43,21 @@ func main() {
 	fmt.Println("User prompt read successfully.") // Progress message
 
 	// --- Initialize Gemini Client ---
-	// apiKey := os.Getenv("GEMINI_API_KEY") // Example: Get API key from environment variable
-	// if apiKey == "" {
-	// 	log.Fatal("Error: GEMINI_API_KEY environment variable not set.")
-	// }
-	// geminiClient, err := gemini.NewClient(apiKey)
-	// if err != nil {
-	// 	log.Fatalf("Error initializing Gemini client: %v", err)
-	// }
-	// defer geminiClient.Close() // Ensure resources are released
-	// fmt.Println("Gemini client initialized.") // Progress message
+	apiKey := os.Getenv("GEMINI_API_KEY") // Get API key from environment variable
+	if apiKey == "" {
+		log.Fatal("Error: GEMINI_API_KEY environment variable not set.")
+	}
+
+	// Create a context
+	ctx := context.Background()
+
+	// Initialize the Gemini client
+	geminiClient, err := gemini.NewClient(ctx, apiKey)
+	if err != nil {
+		log.Fatalf("Error initializing Gemini client: %v", err)
+	}
+	defer geminiClient.Close()                // Ensure resources are released
+	fmt.Println("Gemini client initialized.") // Progress message
 
 	// --- Stage 1: Analysis & Clarification ---
 	// analysisResult, err := geminiClient.AnalyzePrompt(guidelines.Introduction, guidelines.Techniques, userPrompt)
@@ -90,8 +97,6 @@ func main() {
 	// }
 
 	// --- Temporary Placeholder Output ---
-	fmt.Println("\nPlaceholder: Workflow completed (actual logic pending).")
-	fmt.Printf("Input Prompt Flag (-p): %s\n", *promptInput)
-	fmt.Printf("Output Path Flag (-g): %s\n", *outputPath)
+	// Removed temporary placeholder output
 	// End Temporary Placeholder Output ---
 }
