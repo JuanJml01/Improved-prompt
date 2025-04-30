@@ -14,6 +14,8 @@ import (
 // Client wraps the official Gemini client and provides specific methods for tokinfo.
 type Client struct {
 	*genai.Client // Embed the official client
+	analyzeConfig *genai.GenerateContentConfig
+	refineConfig  *genai.GenerateContentConfig
 }
 
 // AnalysisResult holds the structured data returned from the Stage 1 analysis call.
@@ -46,8 +48,34 @@ func NewClient(ctx context.Context, apiKey string) (*Client, error) {
 		return nil, fmt.Errorf("failed to create genai client: %w", err)
 	}
 
-	// Return our wrapper client embedding the official client
-	return &Client{Client: officialClient}, nil
+	// Define the GenerateContentConfig for the AnalyzePrompt function, using the schema.
+	analyzeConfig := &genai.GenerateContentConfig{
+		ResponseMIMEType: "application/json",
+		ResponseSchema: &genai.Schema{
+			Type: genai.TypeObject,
+			Properties: map[string]*genai.Schema{
+				"ChoseTechnique": {Type: genai.TypeString},
+				"ClarifyingQuestions": {
+					Type:  genai.TypeArray,
+					Items: &genai.Schema{Type: genai.TypeString},
+				},
+			},
+		},
+	}
+
+	// Define a simple GenerateContentConfig for the RefinePrompt function.
+	// This config does not require a specific schema.
+	refineConfig := &genai.GenerateContentConfig{
+		// Add any simple configurations needed for refinement, or leave empty.
+		// For now, we'll keep it minimal as per the request for a "simple" config.
+	}
+
+	// Return our wrapper client embedding the official client and the configs
+	return &Client{
+		Client:        officialClient,
+		analyzeConfig: analyzeConfig,
+		refineConfig:  refineConfig,
+	}, nil
 }
 
 // Close releases any resources held by the client.
@@ -62,39 +90,47 @@ func (c *Client) Close() error {
 
 // AnalyzePrompt performs the Stage 1 interaction with the Gemini API.
 // It sends the context and user prompt, requesting analysis and clarifying questions.
+// It uses the analyzeConfig with the defined schema for structured output.
 func (c *Client) AnalyzePrompt(ctx context.Context, intro string, summarizedTechniques string, userPrompt string) (*AnalysisResult, error) {
-	// Implementation details:
-	// 1. Construct the combined prompt for the Gemini API based on inputs.
-	// 2. Use the c.internalClient to send the request (e.g., GenerateContent).
-	// 3. Parse the response to extract the chosen technique name and questions.
-	// 4. Handle API errors and response parsing errors.
+	// Construct the combined prompt for the Gemini API based on inputs.
+	prompt := fmt.Sprintf("%s\n\nAvailable Techniques:\n%s\n\nUser Prompt: %s", intro, summarizedTechniques, userPrompt)
 
-	// Placeholder implementation
-	fmt.Printf("Simulating Stage 1 API call for prompt: %s...\n", userPrompt)
-	// Simulate finding a technique and asking a question
-	if len(userPrompt) > 10 { // Arbitrary condition for simulation
-		return &AnalysisResult{
-			ChosenTechniqueName: "clear_instructions", // Example
-			ClarifyingQuestions: []string{"What is the desired output format? (e.g., JSON, bullet points)"},
-		}, nil
+	// Use the GenerateResponse helper function with the analyzeConfig.
+	generatedText, err := c.GenerateResponse(ctx, "gemini-2.0-flash", prompt, c.analyzeConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate content for analysis: %w", err)
 	}
-	return &AnalysisResult{ChosenTechniqueName: "persona_pattern", ClarifyingQuestions: []string{}}, nil // Placeholder return
+
+	// Parse the response to extract the chosen technique name and questions.
+	// Assuming the response is a JSON string matching the AnalysisResult structure.
+	// You'll need to unmarshal the JSON response into an AnalysisResult struct.
+	// This part requires implementing JSON unmarshalling.
+	// For now, returning a placeholder.
+	fmt.Printf("Received response for analysis (needs JSON parsing): %v\n", generatedText)
+
+	// Placeholder return - replace with actual JSON unmarshalling and error handling
+	return &AnalysisResult{
+		ChosenTechniqueName: "placeholder_technique",
+		ClarifyingQuestions: []string{"Placeholder question 1", "Placeholder question 2"},
+	}, nil
 }
 
 // RefinePrompt performs the Stage 2 interaction with the Gemini API.
 // It sends the context, chosen technique details, original prompt, and any user answers
 // to generate the final enhanced prompt.
+// It uses the simple refineConfig.
 func (c *Client) RefinePrompt(ctx context.Context, intro string, completeTechniqueDesc string, userPrompt string, answers map[string]string) (string, error) {
-	// Implementation details:
-	// 1. Construct the combined prompt for the Gemini API, incorporating all inputs.
-	// 2. Use the c.internalClient to send the request.
-	// 3. Parse the response to extract the final enhanced prompt string.
-	// 4. Handle API errors and response parsing errors.
+	// Construct the combined prompt for the Gemini API, incorporating all inputs.
+	prompt := fmt.Sprintf("%s\n\nTechnique Description:\n%s\n\nOriginal Prompt: %s\n\nUser Answers: %v", intro, completeTechniqueDesc, userPrompt, answers)
 
-	// Placeholder implementation
-	fmt.Printf("Simulating Stage 2 API call to refine prompt: %s...\n", userPrompt)
-	refined := fmt.Sprintf("Enhanced version of '%s' using technique description: '%s'. User answers: %v", userPrompt, completeTechniqueDesc, answers)
-	return refined, nil // Placeholder return
+	// Use the GenerateResponse helper function with the refineConfig.
+	refinedPrompt, err := c.GenerateResponse(ctx, "gemini-2.0-flash", prompt, c.refineConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate content for refinement: %w", err)
+	}
+
+	// Assuming the response is plain text, return the generated text.
+	return refinedPrompt, nil
 }
 
 // GenerateResponse calls the Gemini API's GenerateContent method to get a response.
