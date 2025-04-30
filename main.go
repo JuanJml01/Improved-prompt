@@ -18,6 +18,8 @@ import (
 func main() {
 	// Define command-line flags for user input and output options.
 	promptInput := flag.String("p", "", "Prompt string or path to prompt file (.txt, .md) (required)")
+	// outputPath is currently unused in the Analysis & Clarification phase,
+	// but is kept for future phases.
 	outputPath := flag.String("g", "", "Optional path to save the generated prompt")
 	flag.Parse()
 
@@ -60,11 +62,21 @@ func main() {
 	fmt.Println("Gemini client initialized.") // Progress message
 
 	// --- Stage 1: Analysis & Clarification ---
-	// analysisResult, err := geminiClient.AnalyzePrompt(guidelines.Introduction, guidelines.Techniques, userPrompt)
-	// if err != nil {
-	// 	log.Fatalf("Error during Stage 1 Gemini call: %v", err)
-	// }
-	// fmt.Println("Stage 1 analysis complete. Chosen technique:", analysisResult.ChosenTechniqueName)
+	// Summarize techniques for the Gemini API call
+	var summarizedTechniques string
+	for _, tech := range guidelines.Techniques {
+		summarizedTechniques += fmt.Sprintf("- %s: %s\n", tech.Name, tech.Summarized)
+	}
+
+	// --- Stage 1: Analysis & Clarification ---
+	// Call the AnalyzePrompt method on the Gemini client.
+	// This sends the introduction, summarized techniques, and user prompt to the Gemini model
+	// for analysis and to get clarifying questions.
+	analysisResult, err := geminiClient.AnalyzePrompt(ctx, guidelines.Introduction, summarizedTechniques, userPrompt)
+	if err != nil {
+		log.Fatalf("Error during Stage 1 Gemini call: %v", err)
+	}
+	fmt.Println("Stage 1 analysis complete. Chosen technique:", analysisResult.ChosenTechniqueName)
 
 	// --- User Interaction (Simulated/Placeholder) ---
 	// For this structural setup, we assume no interactive step yet.
@@ -72,31 +84,30 @@ func main() {
 	// fmt.Println("Skipping user interaction step for now.")
 
 	// --- Stage 2: Refinement ---
-	// chosenTechnique, found := config.GetTechniqueByName(guidelines.Techniques, analysisResult.ChosenTechniqueName)
-	// if !found {
-	//     log.Fatalf("Error: Chosen technique '%s' not found in guidelines.", analysisResult.ChosenTechniqueName)
-	// }
-	// enhancedPrompt, err := geminiClient.RefinePrompt(guidelines.Introduction, chosenTechnique.Complete, userPrompt, userAnswers)
-	// if err != nil {
-	// 	log.Fatalf("Error during Stage 2 Gemini call: %v", err)
-	// }
-	// fmt.Println("Stage 2 refinement complete.")
+	chosenTechnique, found := config.GetTechniqueByName(guidelines.Techniques, analysisResult.ChosenTechniqueName)
+	if !found {
+		log.Fatalf("Error: Chosen technique '%s' not found in guidelines.", analysisResult.ChosenTechniqueName)
+	}
+	// For now, we use an empty map for user answers as the interaction step is skipped.
+	userAnswers := make(map[string]string)
+	enhancedPrompt, err := geminiClient.RefinePrompt(ctx, guidelines.Introduction, chosenTechnique.Complete, userPrompt, userAnswers)
+	if err != nil {
+		log.Fatalf("Error during Stage 2 Gemini call: %v", err)
+	}
+	fmt.Println("Stage 2 refinement complete.")
 
 	// --- Output Enhanced Prompt ---
-	// err = prompt.HandleOutput(enhancedPrompt, *outputPath)
-	// if err != nil {
-	// 	log.Fatalf("Error handling output: %v", err)
-	// }
+	err = prompt.HandleOutput(enhancedPrompt, *outputPath)
+	if err != nil {
+		log.Fatalf("Error handling output: %v", err)
+	}
 
 	// Final success message depends on output method
-	// if *outputPath != "" {
-	// 	fmt.Printf("Enhanced prompt successfully saved to %s\n", *outputPath)
-	// } else {
-	// 	fmt.Println("\n--- Enhanced Prompt ---")
-	// 	// The actual prompt content would be printed by HandleOutput
-	// }
+	if *outputPath != "" {
+		fmt.Printf("Enhanced prompt successfully saved to %s\n", *outputPath)
+	} else {
+		fmt.Println("\n--- Enhanced Prompt ---")
+		// The actual prompt content would be printed by HandleOutput
+	}
 
-	// --- Temporary Placeholder Output ---
-	// Removed temporary placeholder output
-	// End Temporary Placeholder Output ---
 }
