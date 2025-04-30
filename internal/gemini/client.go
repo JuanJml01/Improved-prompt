@@ -93,7 +93,48 @@ func (c *Client) Close() error {
 // It uses the analyzeConfig with the defined schema for structured output.
 func (c *Client) AnalyzePrompt(ctx context.Context, intro string, summarizedTechniques string, userPrompt string) (*AnalysisResult, error) {
 	// Construct the combined prompt for the Gemini API based on inputs.
-	prompt := fmt.Sprintf("%s\n\nAvailable Techniques:\n%s\n\nUser Prompt: %s", intro, summarizedTechniques, userPrompt)
+	prompt := fmt.Sprintf(`Prompt Engineering Guide:
+%s
+
+User’s Raw Prompt:
+%s
+
+Task:
+Using only the techniques described in the Prompt Engineering Guide, analyze the User’s Raw Prompt and decide:
+
+1. Which single prompt-engineering technique you will apply.
+2. What clarifying questions (if any) you need to ask before rewriting it — and for each question, provide an example of an appropriate answer.
+
+Output:
+Respond with exactly this JSON schema—no extra keys or prose:
+
+{
+	 "type": "object",
+	 "properties": {
+	   "ChoseTechnique": {
+	     "type": "string",
+	     "description": "The name of the chosen technique from the Guide."
+	   },
+	   "ClarifyingQuestions": {
+	     "type": "array",
+	     "items": {
+	       "type": "object",
+	       "properties": {
+	         "question": {
+	           "type": "string",
+	           "description": "The clarifying question to ask the user."
+	         },
+	         "exampleAnswer": {
+	           "type": "string",
+	           "description": "A sample answer that the user might give."
+	         }
+	       },
+	       "required": ["question", "exampleAnswer"]
+	     }
+	   }
+	 },
+	 "required": ["ChoseTechnique", "ClarifyingQuestions"]
+}`, intro+"\n\n"+summarizedTechniques, userPrompt)
 
 	// Use the GenerateResponse helper function with the analyzeConfig.
 	generatedText, err := c.GenerateResponse(ctx, "gemini-2.0-flash", prompt, c.analyzeConfig)
