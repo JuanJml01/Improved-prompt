@@ -162,7 +162,29 @@ Respond with exactly this JSON schema—no extra keys or prose:
 // It uses the simple refineConfig.
 func (c *Client) RefinePrompt(ctx context.Context, intro string, completeTechniqueDesc string, userPrompt string, answers map[string]string) (string, error) {
 	// Construct the combined prompt for the Gemini API, incorporating all inputs.
-	prompt := fmt.Sprintf("%s\n\nTechnique Description:\n%s\n\nOriginal Prompt: %s\n\nUser Answers: %v", intro, completeTechniqueDesc, userPrompt, answers)
+	prompt := fmt.Sprintf(`%s  (intro)
+%s (completeTechniqueDesc)
+%s  (userprompt)
+%v (answers)
+
+You are a prompt enhancement tool that rigorously applies the provided engineering guidelines. Refine the user's original "{prompt}" by:
+1. **Integrating** the context from:
+	  - {intro} (core principles)
+	  - {technique description} (methodology)
+	  - {extra information} (additional constraints/requirements)
+2. **Enhancing** specificity, structure, and clarity while **preserving every element** of the original prompt.
+3. **Formatting** the output as a standalone, optimized prompt in English with no explanations, headers, or markdown.
+
+**Constraints:**
+- Do **not** add, remove, or reinterpret concepts from "{prompt}".
+- Use **only** the context from {intro}, {technique description}, and {extra information}.
+- Output **exclusively** the final enhanced prompt.
+
+**Example Transformation:**
+Original: "Explain blockchain"
+Enhanced: "Describe blockchain technology in 3 steps using a baking analogy for non-technical audiences. Highlight decentralization and security. Avoid cryptocurrency mentions."`,
+		intro, completeTechniqueDesc, userPrompt, answers,
+	)
 
 	// Use the GenerateResponse helper function with the refineConfig.
 	refinedPrompt, err := c.GenerateResponse(ctx, "gemini-2.0-flash", prompt, c.refineConfig)
