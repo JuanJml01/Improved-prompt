@@ -22,7 +22,7 @@ type Guidelines struct {
 
 // LoadGuidelines reads the specified JSON file and parses it into a Guidelines struct.
 // It returns the populated struct or an error if reading/parsing fails.
-func LoadGuidelines(filePath string) (*Guidelines, error) {
+func LoadGuidelines(filePath string, verbose bool) (*Guidelines, error) {
 	// Implementation details:
 	// 1. Use os.ReadFile to read the file content.
 	// 2. Use json.Unmarshal to parse the content into the Guidelines struct.
@@ -45,7 +45,10 @@ func LoadGuidelines(filePath string) (*Guidelines, error) {
 		return nil, fmt.Errorf("guidelines file '%s' is missing introduction or techniques", filePath)
 	}
 
-	return &guidelines, nil // Placeholder return
+	if verbose {
+		fmt.Printf("Successfully loaded guidelines from '%s'\n", filePath)
+	}
+	return &guidelines, nil
 }
 
 // GetTechniqueByName searches the list of techniques for one matching the given name.

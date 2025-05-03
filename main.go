@@ -2,11 +2,13 @@
 package main
 
 import (
+	"bufio"
 	"context" // Add context import
 	"flag"
 	"fmt"
 	"log" // Using log for simple error reporting
 	"os"  // Add os import
+	"strings"
 
 	// It's conventional to alias internal packages based on their directory name.
 	// These imports will be uncommented as the packages are implemented.
@@ -21,6 +23,7 @@ func main() {
 	// outputPath is currently unused in the Analysis & Clarification phase,
 	// but is kept for future phases.
 	outputPath := flag.String("g", "", "Optional path to save the generated prompt")
+	verbose := flag.Bool("verbose", false, "Enable verbose output") // Add verbose flag
 	flag.Parse()
 
 	// --- Input Validation ---
@@ -28,21 +31,27 @@ func main() {
 		log.Fatal("Error: -p flag (prompt input) is required.") // Use log.Fatal for cleaner exit on error
 	}
 
-	fmt.Println("Starting Tokinfo: Prompt Enhancement Tool...") // Indicate start
+	if *verbose {
+		fmt.Println("Starting Tokinfo: Prompt Enhancement Tool...") // Indicate start
+	}
 
 	// --- Load Guidelines ---
-	guidelines, err := config.LoadGuidelines("guidelines.json")
+	guidelines, err := config.LoadGuidelines("guidelines.json", *verbose) // Pass verbose flag
 	if err != nil {
 		log.Fatalf("Error loading guidelines: %v", err)
 	}
-	fmt.Println("Guidelines loaded.") // Progress message
+	if *verbose {
+		fmt.Println("Guidelines loaded.") // Progress message
+	}
 
 	// --- Read User Prompt ---
-	userPrompt, err := prompt.ReadInput(*promptInput)
+	userPrompt, err := prompt.ReadInput(*promptInput, *verbose) // Pass verbose flag
 	if err != nil {
 		log.Fatalf("Error reading prompt input: %v", err)
 	}
-	fmt.Println("User prompt read successfully.") // Progress message
+	if *verbose {
+		fmt.Println("User prompt read successfully.") // Progress message
+	}
 
 	// --- Initialize Gemini Client ---
 	apiKey := os.Getenv("GEMINI_API_KEY") // Get API key from environment variable
@@ -54,12 +63,14 @@ func main() {
 	ctx := context.Background()
 
 	// Initialize the Gemini client
-	geminiClient, err := gemini.NewClient(ctx, apiKey)
+	geminiClient, err := gemini.NewClient(ctx, apiKey, *verbose) // Pass verbose flag
 	if err != nil {
 		log.Fatalf("Error initializing Gemini client: %v", err)
 	}
-	defer geminiClient.Close()                // Ensure resources are released
-	fmt.Println("Gemini client initialized.") // Progress message
+	defer geminiClient.Close() // Ensure resources are released
+	if *verbose {
+		fmt.Println("Gemini client initialized.") // Progress message
+	}
 
 	// --- Stage 1: Analysis & Clarification ---
 	// Summarize techniques for the Gemini API call
@@ -76,38 +87,84 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error during Stage 1 Gemini call: %v", err)
 	}
-	fmt.Println("Stage 1 analysis complete. Chosen technique:", analysisResult.ChosenTechniqueName)
+	if *verbose {
+		fmt.Println("Stage 1 analysis complete. Chosen technique:", analysisResult.ChosenTechniqueName)
+	}
 
-	// --- User Interaction (Simulated/Placeholder) ---
-	// For this structural setup, we assume no interactive step yet.
-	// userAnswers := make(map[string]string) // Placeholder for answers if questions were asked
-	// fmt.Println("Skipping user interaction step for now.")
+	// --- User Interaction ---
+	userAnswers := make(map[string]string) // Initialize map for answers
+	if len(analysisResult.ClarifyingQuestions) > 0 {
+		if *verbose {
+			fmt.Println("\nPlease answer the following questions to help refine the prompt:")
+		}
+		reader := bufio.NewReader(os.Stdin) // Create a reader for input
+
+		// Iterate over the slice of question strings
+		for i, questionText := range analysisResult.ClarifyingQuestions {
+			fmt.Printf("- %s: ", questionText) // Print the question text
+			answer, err := reader.ReadString('\n')
+			if err != nil {
+				// Basic error handling for reading input
+				log.Printf("Warning: Could not read answer for question %d ('%s'): %v. Skipping.", i+1, questionText, err)
+				continue // Skip this question if reading fails
+			}
+			// Trim newline characters (\r\n on Windows, \n on Unix)
+			// Use the question text as the key for the answer map
+			userAnswers[questionText] = strings.TrimSpace(answer)
+		}
+		if *verbose {
+			fmt.Println("Thank you for your answers.")
+		}
+	} else {
+		if *verbose {
+			fmt.Println("No clarifying questions needed based on the analysis.")
+		}
+	}
 
 	// --- Stage 2: Refinement ---
 	chosenTechnique, found := config.GetTechniqueByName(guidelines.Techniques, analysisResult.ChosenTechniqueName)
 	if !found {
 		log.Fatalf("Error: Chosen technique '%s' not found in guidelines.", analysisResult.ChosenTechniqueName)
 	}
-	// For now, we use an empty map for user answers as the interaction step is skipped.
-	userAnswers := make(map[string]string)
+	// userAnswers map is now populated from the interaction step above (if any questions were asked).
 	enhancedPrompt, err := geminiClient.RefinePrompt(ctx, guidelines.Introduction, chosenTechnique.Complete, userPrompt, userAnswers)
 	if err != nil {
 		log.Fatalf("Error during Stage 2 Gemini call: %v", err)
 	}
-	fmt.Println("Stage 2 refinement complete.")
+	if *verbose {
+		fmt.Println("Stage 2 refinement complete.")
+	}
 
 	// --- Output Enhanced Prompt ---
-	err = prompt.HandleOutput(enhancedPrompt, *outputPath)
+	err = prompt.HandleOutput(enhancedPrompt, *outputPath, *verbose) // Pass verbose flag
 	if err != nil {
 		log.Fatalf("Error handling output: %v", err)
 	}
 
-	// Final success message depends on output method
-	if *outputPath != "" {
-		fmt.Printf("Enhanced prompt successfully saved to %s\n", *outputPath)
-	} else {
-		fmt.Println("\n--- Enhanced Prompt ---")
-		// The actual prompt content would be printed by HandleOutput
+	// --- Stage 3: Execute Enhanced Prompt ---
+	if *verbose {
+		fmt.Println("\nExecuting enhanced prompt with Gemini...")
+	}
+	// Use the same simple config as refinement, or nil if appropriate
+	// Using "gemini-2.0-flash" as used in RefinePrompt, adjust if needed
+	finalResult, err := geminiClient.GenerateResponse(ctx, "gemini-2.0-flash", enhancedPrompt, geminiClient.GetRefineConfig()) // Assuming GetRefineConfig() exists or use refineConfig directly if accessible
+	if err != nil {
+		log.Fatalf("Error during Stage 3 Gemini execution: %v", err)
 	}
 
+	// The final result should ALWAYS be printed, regardless of verbose flag.
+	fmt.Println(finalResult)
+
+	// Final success message depends on output method
+	if *verbose && *outputPath != "" {
+		fmt.Printf("Enhanced prompt successfully saved to %s\n", *outputPath)
+	}
+	// No need to print the enhanced prompt again here if HandleOutput already did
+	// The final Gemini response is printed above, outside the verbose check.
+
 }
+
+// Helper function to access refineConfig (needs to be added to client.go or accessed differently)
+// For now, let's assume we need to add a getter in client.go
+// Alternatively, pass nil if GenerateResponse handles it:
+// finalResult, err := geminiClient.GenerateResponse(ctx, "gemini-2.0-flash", enhancedPrompt, nil)

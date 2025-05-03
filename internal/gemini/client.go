@@ -17,6 +17,7 @@ type Client struct {
 	*genai.Client // Embed the official client
 	analyzeConfig *genai.GenerateContentConfig
 	refineConfig  *genai.GenerateContentConfig
+	verbose       bool // Add verbose flag to the client
 }
 
 // AnalysisResult holds the structured data returned from the Stage 1 analysis call.
@@ -27,8 +28,8 @@ type AnalysisResult struct {
 }
 
 // NewClient initializes and returns a new Gemini client wrapper.
-// It requires the API key for authentication.
-func NewClient(ctx context.Context, apiKey string) (*Client, error) {
+// It requires the API key for authentication and the verbose flag.
+func NewClient(ctx context.Context, apiKey string, verbose bool) (*Client, error) {
 	// Use the official genai package to create a new client instance.
 	// Handle potential initialization errors.
 	// Return a new instance of our wrapper Client struct.
@@ -76,6 +77,7 @@ func NewClient(ctx context.Context, apiKey string) (*Client, error) {
 		Client:        officialClient,
 		analyzeConfig: analyzeConfig,
 		refineConfig:  refineConfig,
+		verbose:       verbose, // Initialize the verbose field
 	}, nil
 }
 
@@ -85,7 +87,9 @@ func (c *Client) Close() error {
 	// 1. Call the Close method on the underlying official client if it exists.
 	//    (e.g., return c.internalClient.Close())
 	// 2. Handle potential errors during closing.
-	fmt.Println("Gemini client resources released (placeholder).") // Placeholder action
+	if c.verbose { // Use the struct's verbose field
+		fmt.Println("Gemini client resources released (placeholder).") // Placeholder action
+	}
 	return nil
 }
 
@@ -211,4 +215,9 @@ func (c *Client) GenerateResponse(ctx context.Context, modelName string, prompt 
 
 	// Return the extracted text and nil error
 	return generatedText, nil
+}
+
+// GetRefineConfig returns the client's configuration for the refinement step.
+func (c *Client) GetRefineConfig() *genai.GenerateContentConfig {
+	return c.refineConfig
 }
