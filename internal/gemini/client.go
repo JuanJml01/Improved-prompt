@@ -52,6 +52,11 @@ func NewClient(ctx context.Context, apiKey string, verbose bool) (*Client, error
 
 	// Define the GenerateContentConfig for the AnalyzePrompt function, using the schema.
 	analyzeConfig := &genai.GenerateContentConfig{
+		SystemInstruction: &genai.Content{
+			Parts: []*genai.Part{
+				{Text: "You are a prompt analysis tool. Choose a technique and respond only as requested, without adding extra information."},
+			},
+		},
 		ResponseMIMEType: "application/json",
 		ResponseSchema: &genai.Schema{
 			Type: genai.TypeObject,
@@ -68,8 +73,12 @@ func NewClient(ctx context.Context, apiKey string, verbose bool) (*Client, error
 	// Define a simple GenerateContentConfig for the RefinePrompt function.
 	// This config does not require a specific schema.
 	refineConfig := &genai.GenerateContentConfig{
+		SystemInstruction: &genai.Content{
+			Parts: []*genai.Part{
+				{Text: "You are a prompt refinement tool. Respond only with the improved and translated prompt, applying the techniques."},
+			},
+		},
 		// Add any simple configurations needed for refinement, or leave empty.
-		// For now, we'll keep it minimal as per the request for a "simple" config.
 	}
 
 	// Return our wrapper client embedding the official client and the configs
