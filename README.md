@@ -10,7 +10,7 @@ Herramienta CLI para mejorar prompts usando Gemini AI.
 
 1. Clona el repositorio:
    ```bash
-   git clone https://github.com/your-username/tokinfo.git # Reemplazar con la URL real del repositorio
+   git clone https://github.com/JuanJml01/Improved-prompt
    ```
 2. Navega al directorio del proyecto:
    ```bash
