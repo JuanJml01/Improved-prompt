@@ -54,7 +54,7 @@ func NewClient(ctx context.Context, apiKey string, verbose bool) (*Client, error
 	analyzeConfig := &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{
-				{Text: "You are a prompt analysis tool. Choose a technique and respond only as requested, without adding extra information."},
+				{Text: "You are a prompt analysis tool. Your sole purpose is to analyze the user's raw prompt based on the provided guide and output a JSON object containing the chosen technique and clarifying questions. You MUST output ONLY the JSON object and nothing else. Do not include any conversational text, explanations, or markdown outside the JSON."},
 			},
 		},
 		ResponseMIMEType: "application/json",
@@ -75,7 +75,7 @@ func NewClient(ctx context.Context, apiKey string, verbose bool) (*Client, error
 	refineConfig := &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{
-				{Text: "You are a prompt refinement tool. Respond only with the improved and translated prompt, applying the techniques."},
+				{Text: "You are a prompt refinement tool. Your sole purpose is to refine the user's raw prompt based on the provided context and output the improved and translated prompt. You MUST output ONLY the refined prompt text and nothing else. Do not include any conversational text, explanations, or markdown."},
 			},
 		},
 		// Add any simple configurations needed for refinement, or leave empty.
