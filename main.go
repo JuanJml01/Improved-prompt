@@ -135,25 +135,13 @@ func main() {
 		fmt.Println("Stage 2 refinement complete.")
 	}
 
-	// --- Output Enhanced Prompt ---
-	err = prompt.HandleOutput(enhancedPrompt, *outputPath, *verbose) // Pass verbose flag
-	if err != nil {
-		log.Fatalf("Error handling output: %v", err)
-	}
-
 	// --- Stage 3: Execute Enhanced Prompt ---
 	if *verbose {
 		fmt.Println("\nExecuting enhanced prompt with Gemini...")
 	}
-	// Use the same simple config as refinement, or nil if appropriate
-	// Using "gemini-2.0-flash" as used in RefinePrompt, adjust if needed
-	finalResult, err := geminiClient.GenerateResponse(ctx, "gemini-2.0-flash", enhancedPrompt, geminiClient.GetRefineConfig()) // Assuming GetRefineConfig() exists or use refineConfig directly if accessible
-	if err != nil {
-		log.Fatalf("Error during Stage 3 Gemini execution: %v", err)
-	}
 
 	// The final result should ALWAYS be printed, regardless of verbose flag.
-	fmt.Println(finalResult)
+	fmt.Println(enhancedPrompt)
 
 	// Final success message depends on output method
 	if *verbose && *outputPath != "" {

@@ -54,7 +54,7 @@ func NewClient(ctx context.Context, apiKey string, verbose bool) (*Client, error
 	analyzeConfig := &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{
-				{Text: "You are a prompt analysis tool. Your sole purpose is to analyze the user's raw prompt based on the provided guide and output a JSON object containing the chosen technique and clarifying questions. You MUST output ONLY the JSON object and nothing else. Do not include any conversational text, explanations, or markdown outside the JSON."},
+				{Text: "You are a prompt analysis tool. Your only task is to analyze the user's raw prompt using the provided guide and return a JSON object with the chosen technique and clarifying questions. Output ONLY the JSON object. Do NOT include any text, explanations, code, or markdown outside the JSON. Any additional content is an error."},
 			},
 		},
 		ResponseMIMEType: "application/json",
@@ -75,7 +75,7 @@ func NewClient(ctx context.Context, apiKey string, verbose bool) (*Client, error
 	refineConfig := &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{
-				{Text: "You are a prompt refinement tool. Your sole purpose is to refine the user's raw prompt based on the provided context and output the improved and translated prompt. You MUST output ONLY the refined prompt text and nothing else. Do not include any conversational text, explanations, or markdown."},
+				{Text: "You are a prompt refinement tool. Your only task is to refine the user's raw prompt based on the provided context and output the improved prompt as plain text in English. Output ONLY the refined prompt. Do NOT include code, explanations, comments, or any extra text. Any additional content is an error."},
 			},
 		},
 		// Add any simple configurations needed for refinement, or leave empty.
@@ -110,9 +110,11 @@ func (c *Client) AnalyzePrompt(ctx context.Context, intro string, summarizedTech
 	prompt := fmt.Sprintf(`Prompt Engineering Guide:
 %s
 
+-------------------------------------------------------------------
+
 User’s Raw Prompt:
 %s
-
+-------------------------------------------------------------------
 Task:
 Using only the techniques described in the Prompt Engineering Guide, analyze the User’s Raw Prompt and decide:
 
@@ -151,7 +153,7 @@ Respond with exactly this JSON schema—no extra keys or prose:
 }`, intro+"\n\n"+summarizedTechniques, userPrompt)
 
 	// Use the GenerateResponse helper function with the analyzeConfig.
-	generatedText, err := c.GenerateResponse(ctx, "gemini-2.0-flash", prompt, c.analyzeConfig)
+	generatedText, err := c.GenerateResponse(ctx, "gemini-2.5-flash-preview-04-17", prompt, c.analyzeConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate content for analysis: %w", err)
 	}
@@ -175,10 +177,16 @@ Respond with exactly this JSON schema—no extra keys or prose:
 // It uses the simple refineConfig.
 func (c *Client) RefinePrompt(ctx context.Context, intro string, completeTechniqueDesc string, userPrompt string, answers map[string]string) (string, error) {
 	// Construct the combined prompt for the Gemini API, incorporating all inputs.
-	prompt := fmt.Sprintf(`%s  (intro)
-%s (completeTechniqueDesc)
-%s  (userprompt)
-%v (answers)
+	prompt := fmt.Sprintf(`%s 
+%s 
+--------------------------------------------------------------------------
+prompt:
+%s
+
+--------------------------------------------------------------------------
+Extra information
+%v 
+--------------------------------------------------------------------------
 
 You are a prompt enhancement tool that rigorously applies the provided engineering guidelines. Refine the user's original "{prompt}" by:
 1. **Integrating** the context from:
@@ -200,7 +208,7 @@ Enhanced: "Describe blockchain technology in 3 steps using a baking analogy for 
 	)
 
 	// Use the GenerateResponse helper function with the refineConfig.
-	refinedPrompt, err := c.GenerateResponse(ctx, "gemini-2.0-flash", prompt, c.refineConfig)
+	refinedPrompt, err := c.GenerateResponse(ctx, "gemini-2.5-flash-preview-04-17", prompt, c.refineConfig)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate content for refinement: %w", err)
 	}
